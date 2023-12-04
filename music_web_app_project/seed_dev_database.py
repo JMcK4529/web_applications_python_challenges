@@ -8,3 +8,4 @@ connection.connect()
 connection.seed("seeds/book_store.sql")
 # Add your own seed lines below...
 connection.seed("seeds/albums_table.sql")
+connection.seed("seeds/artists_table.sql")
