@@ -9,11 +9,12 @@
     <body>
         <h1>Albums</h1>
 
-        {% for album in album %}
+        {% for album in albums %}
         <div>
             Title: {{album.title}} <br>
             Released: {{album.release_year}}
         </div>
+        <a href="/album/{{album.id}}">More info...</a>
         <br>
         {% endfor %}
         

@@ -34,9 +34,9 @@ GET /artists
   Artist(2, Catfish and the Bottlemen, Alternative)
   Artist(3, Nothing But Thieves, Alt-Rock)
 """
-def test_get_artists(db_connection, web_client, test_web_address):
+def test_get_artists_list(db_connection, web_client, test_web_address):
     db_connection.seed("seeds/artists_table.sql")
-    response = web_client.get(f'http://{test_web_address}/artists')
+    response = web_client.get(f'http://{test_web_address}/artists_list')
     assert response.status_code == 200
     assert response.data.decode('utf-8') == \
         "Artist(1, Elbow, Indie)\n" + \
@@ -51,13 +51,13 @@ POST /artists
   Expected response (200 OK):
   ""
 """
-def test_post_artists(db_connection, web_client, test_web_address):
+def test_post_artists_list(db_connection, web_client, test_web_address):
     db_connection.seed("seeds/artists_table.sql")
-    post_response = web_client.post(f'http://{test_web_address}/artists', data={'name': 'YONAKA', 'genre': 'Alt-Rock'})
+    post_response = web_client.post(f'http://{test_web_address}/artists_list', data={'name': 'YONAKA', 'genre': 'Alt-Rock'})
     assert post_response.status_code == 200
     assert post_response.data.decode('utf-8') == ''
 
-    get_response = web_client.get(f'http://{test_web_address}/artists')
+    get_response = web_client.get(f'http://{test_web_address}/artists_list')
     assert get_response.status_code == 200
     assert get_response.data.decode('utf-8') == \
         "Artist(1, Elbow, Indie)\n" + \
@@ -72,12 +72,12 @@ POST /artists
   Expected response (400 Bad Request):
   ""
 """
-def test_post_artists_bad_request(db_connection, web_client, test_web_address):
+def test_post_artists_list_bad_request(db_connection, web_client, test_web_address):
     db_connection.seed("seeds/artists_table.sql")
-    post_response = web_client.post(f'http://{test_web_address}/artists', data={})
+    post_response = web_client.post(f'http://{test_web_address}/artists_list', data={})
     assert post_response.status_code == 400
 
-    get_response = web_client.get(f'http://{test_web_address}/artists')
+    get_response = web_client.get(f'http://{test_web_address}/artists_list')
     assert get_response.status_code == 200
     assert get_response.data.decode('utf-8') == \
         "Artist(1, Elbow, Indie)\n" + \
@@ -116,10 +116,11 @@ def test_post_albums_list(db_connection, web_client, test_web_address):
 When I call GET /albums
 I get a HTML response which shows some Titles and Release Years
 """
-def test_get_albums(db_connection, web_client, page, test_web_address):
-    page.goto(f"http://{test_web_address}/goodbye")
+def test_get_albums(db_connection, page, test_web_address):
+    db_connection.seed("seeds/albums_table.sql")
+    page.goto(f"http://{test_web_address}/albums")
     div_tags_locator = page.locator("div")
-    div_tags_list = div_tags_locator.all()
+    div_tags_list = page.locator("div").all()
     expected_text_list = [
         "Title: Asleep in the Back\nReleased: 2001",
         "Title: The Balcony\nReleased: 2014",
@@ -129,5 +130,100 @@ def test_get_albums(db_connection, web_client, page, test_web_address):
         "Title: Moral Panic\nReleased: 2020",
         "Title: Leaders of the Free World\nReleased: 2005"
     ]
+    assert len(div_tags_list) > 0
     for div, text in zip(div_tags_list, expected_text_list):
         expect(div).to_have_text(text)
+
+# Dynamic Templates: Challenge
+"""
+When I call GET /albums/<album_id>
+I get a HTML response which shows the release year and the artist
+for the album with id "album_id"
+"""
+def test_get_album(db_connection, page, test_web_address):
+    db_connection.seed("seeds/albums_table.sql")
+    expected_h1_list = [
+        "Asleep in the Back",
+        "The Balcony",
+        "Nothing But Thieves"
+    ]
+    expected_p_list = [
+        "Release Year: 2001\nArtist: Elbow",
+        "Release Year: 2014\nArtist: Catfish and the Bottlemen",
+        "Release Year: 2015\nArtist: Nothing But Thieves"
+    ]
+    for num in range(1,4):
+        page.goto(f"http://{test_web_address}/album/{num}")
+        h1_loc = page.locator("h1")
+        expect(h1_loc).to_have_text(
+            expected_h1_list[num-1]
+        )
+        p_loc = page.locator("p")
+        expect(p_loc).to_have_text(
+            expected_p_list[num-1]
+        )
+    
+# Using Links: Exercise
+def test_get_albums_has_links(db_connection, page, test_web_address):
+    db_connection.seed("seeds/albums_table.sql")
+    page.goto(f"http://{test_web_address}/albums")
+    a_list = page.locator("a")
+    a_list = a_list.all()
+    for a, num in zip(a_list, range(1,len(a_list)+1)):
+        a.dblclick()
+        expect(page).to_have_url(f"http://{test_web_address}/album/{num}")
+        page.goto(f"http://{test_web_address}/albums")
+
+# Using Links: Challenge
+def test_get_artist_by_id(db_connection, page, test_web_address):
+    db_connection.seed("seeds/artists_table.sql")
+    expected_title_list = [
+        "Artist Info: Elbow",
+        "Artist Info: Catfish and the Bottlemen",
+        "Artist Info: Nothing But Thieves"
+    ]
+    expected_h1_list = [
+        "Elbow",
+        "Catfish and the Bottlemen",
+        "Nothing But Thieves"
+    ]
+    expected_p_list = [
+        "Genre: Indie",
+        "Genre: Alternative",
+        "Genre: Alt-Rock"
+    ]
+
+    for num in range(1,4):
+        page.goto(f"http://{test_web_address}/artists/{num}")
+        title = page.locator("title")
+        assert title.inner_text().strip() == expected_title_list[num - 1]
+        # expect(title).to_have_text(expected_title_list[num - 1]) # Why doesn't this work??
+        h1 = page.locator("h1")
+        expect(h1).to_have_text(expected_h1_list[num - 1])
+        p = page.locator("p")
+        expect(p).to_have_text(expected_p_list[num - 1])
+
+def test_get_artists(db_connection, page, test_web_address):
+    db_connection.seed("seeds/artists_table.sql")
+    page.goto(f"http://{test_web_address}/artists")
+    title = page.locator("title")
+    assert title.inner_text().strip() == "Artists with links"
+    h1 = page.locator("h1")
+    expect(h1).to_have_text("Artists")
+
+    expected_divs = [
+        "Name: Elbow\nGenre: Indie",
+        "Name: Catfish and the Bottlemen\nGenre: Alternative",
+        "Name: Nothing But Thieves\nGenre: Alt-Rock"
+    ]
+    divs = page.locator("div")
+    divs_list = divs.all()
+    for div, text in zip(divs_list, expected_divs):
+        expect(div).to_have_text(text)
+
+    a_tags = page.locator("a")
+    a_tags_list = a_tags.all()
+    for a, num in zip(a_tags_list, range(1, 4)):
+        a.dblclick()
+        expect(page).to_have_url(f"http://{test_web_address}/artists/{num}")
+        page.goto(f"http://{test_web_address}/artists")

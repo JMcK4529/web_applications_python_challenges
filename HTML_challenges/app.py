@@ -42,15 +42,15 @@ def get_goodbye():
     return render_template('farewell.html', name=name)
 
 # Dynamic Templates
-@app.route('/artists', methods=['GET'])
-def get_artists():
+@app.route('/artists_list', methods=['GET'])
+def get_artists_list():
     connection = get_flask_database_connection(app)
     artist_repo = ArtistRepository(connection)
     artists = artist_repo.all()
     return "\n".join([str(artist) for artist in artists])
 
-@app.route('/artists', methods=['POST'])
-def post_artists():
+@app.route('/artists_list', methods=['POST'])
+def post_artists_list():
     connection = get_flask_database_connection(app)
     artist_repo = ArtistRepository(connection)
     new_artist_info = request.form['name'], request.form['genre']
@@ -83,6 +83,29 @@ def get_albums():
     albums = album_repo.all()
 
     return render_template('albums.html', albums=albums)
+
+@app.route('/album/<int:album_id>', methods=['GET'])
+def get_album(album_id):
+    connection = get_flask_database_connection(app)
+    album_repo = AlbumRepository(connection)
+    album = album_repo.find(album_id)
+    artist_repo = ArtistRepository(connection)
+    artist = artist_repo.find(album.artist_id)
+    return render_template('single_album.html', album=album, artist=artist)
+
+@app.route('/artists/<int:artist_id>', methods=['GET'])
+def get_artist(artist_id):
+    connection = get_flask_database_connection(app)
+    artist_repo = ArtistRepository(connection)
+    artist = artist_repo.find(artist_id)
+    return render_template('single_artist.html', artist=artist)
+
+@app.route('/artists', methods=['GET'])
+def get_artists():
+    connection = get_flask_database_connection(app)
+    artist_repo = ArtistRepository(connection)
+    artists = artist_repo.all()
+    return render_template('artists.html', artists=artists)
 
 # These lines start the server if you run this file directly
 # They also start the server configured to use the test database
