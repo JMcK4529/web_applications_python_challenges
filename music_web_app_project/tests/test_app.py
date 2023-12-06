@@ -66,9 +66,9 @@ def test_post_albums(db_connection, web_client):
 # Scenario 2
 
     # POST /albums
-    #  title: 'The Seldom Seen Kid'
-    #  release_year: '2008' 
-    #  artist_id: '1' 
+    #  title:
+    #  release_year:
+    #  artist_id:
     #  Expected response (400 Bad Request):
     """
     Please provide a title, release_year and artist_id
