@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Artist Repository</title>
+  </head>
+  <body>
+    <h1>New Artist</h1>
+
+    <form action="/artists/new" method="post">
+
+      {% if errors %}
+        <p class="t-errors">
+          There were errors with your submission: {{ errors }}
+        </p>
+      {% endif %}
+
+      <p>
+        <label for="name">Name</label>
+        <input type="text" name="name" id="name">
+      </p>
+
+      <p>
+        <label for="genre">Genre</label>
+        <input type="text" name="genre" id="genre">
+      </p>
+
+      <p>
+        <input type="submit" value="Create Artist">
+      </p>
+
+    </form>
+  </body>
+</html>

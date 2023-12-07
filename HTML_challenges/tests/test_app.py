@@ -169,6 +169,7 @@ def test_get_albums_has_links(db_connection, page, test_web_address):
     page.goto(f"http://{test_web_address}/albums")
     a_list = page.locator("a")
     a_list = a_list.all()
+    a_list.pop(-1) # To get rid of the link to /albums/new
     for a, num in zip(a_list, range(1,len(a_list)+1)):
         a.dblclick()
         expect(page).to_have_url(f"http://{test_web_address}/album/{num}")
@@ -195,9 +196,7 @@ def test_get_artist_by_id(db_connection, page, test_web_address):
 
     for num in range(1,4):
         page.goto(f"http://{test_web_address}/artists/{num}")
-        title = page.locator("title")
-        assert title.inner_text().strip() == expected_title_list[num - 1]
-        # expect(title).to_have_text(expected_title_list[num - 1]) # Why doesn't this work??
+        expect(page).to_have_title(expected_title_list[num - 1])
         h1 = page.locator("h1")
         expect(h1).to_have_text(expected_h1_list[num - 1])
         p = page.locator("p")
@@ -227,3 +226,102 @@ def test_get_artists(db_connection, page, test_web_address):
         a.dblclick()
         expect(page).to_have_url(f"http://{test_web_address}/artists/{num}")
         page.goto(f"http://{test_web_address}/artists")
+
+# Using Forms: Exercise
+"""
+When we fill in a form at /albums/new
+A new album is created and we can see it at its info at its id page
+"""
+def test_create_album(db_connection, page, test_web_address):
+    db_connection.seed("seeds/albums_table.sql")
+    page.goto(f"http://{test_web_address}/albums")
+
+    # There is now a link in /albums which takes us to /albums/new
+    page.click("text=Add a new album")
+
+    # Then we fill out the field with the name attribute 'title'
+    page.fill("input[name='title']", "The Seldom Seen Kid")
+
+    # And the field with the name attribute 'release_year'
+    page.fill("input[name='release_year']", "2008")
+
+    # Followed by the field with name attribute 'artist'
+    page.fill("input[name='artist_id']", "1")
+
+    # Finally we click the button with the text 'Create Album'
+    page.click("text=Create Album")
+
+    # The virtual browser is redirected to the id page.
+    # We can locate some relevant elements by their class.
+    expect(page).to_have_title("Album Info: The Seldom Seen Kid")
+    
+    info_element = page.locator(".t-info")
+    expect(info_element).to_have_text("Release Year: 2008\nArtist: Elbow")
+
+# Using Forms: Challenge
+"""
+When we fill in a form at /artists/new
+A new artist is created in the database and we can see it at its id page
+"""
+def test_create_artist(db_connection, page, test_web_address):
+    db_connection.seed("seeds/artists_table.sql")
+    page.goto(f"http://{test_web_address}/artists")
+
+    page.click("text=Add new artist")
+
+    page.fill("input[name='name']", "YONAKA")
+
+    page.fill("input[name='genre']", "Alt-Rock")
+
+    page.click("text=Create Artist")
+
+    expect(page).to_have_title("Artist Info: YONAKA")
+    genre_element = page.locator(".t-genre")
+    expect(genre_element).to_have_text("Genre: Alt-Rock")
+
+"""
+When we fill in a form at /artists/new with a bad entry
+An error is returned at the start of /artists/new
+"""
+def test_create_bad_artist(db_connection, page, test_web_address):
+    db_connection.seed("seeds/artists_table.sql")
+    page.goto(f"http://{test_web_address}/artists")
+
+    page.click("text=Add new artist")
+
+    page.fill("input[name='name']", "")
+
+    page.fill("input[name='genre']", "Alt-Rock")
+
+    page.click("text=Create Artist")
+
+    expect(page).to_have_url(f"http://{test_web_address}/artists/new")
+    expect(page).to_have_title("Artist Repository")
+    error_element = page.locator(".t-errors")
+    expect(error_element).to_have_text(
+        "There were errors with your submission: Name can't be empty.")
+    
+    page.fill("input[name='name']", "YONAKA")
+
+    page.fill("input[name='genre']", "")
+
+    page.click("text=Create Artist")
+
+    expect(page).to_have_url(f"http://{test_web_address}/artists/new")
+    expect(page).to_have_title("Artist Repository")
+    error_element = page.locator(".t-errors")
+    expect(error_element).to_have_text(
+        "There were errors with your submission: Genre can't be empty.")
+    
+    page.fill("input[name='name']", "")
+
+    page.fill("input[name='genre']", "")
+
+    page.click("text=Create Artist")
+
+    expect(page).to_have_url(f"http://{test_web_address}/artists/new")
+    expect(page).to_have_title("Artist Repository")
+    error_element = page.locator(".t-errors")
+    expect(error_element).to_have_text(
+        "There were errors with your submission: " + 
+            "Name can't be empty. Genre can't be empty.")

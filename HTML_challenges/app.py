@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, redirect
 from lib.database_connection import get_flask_database_connection
 from lib.album_repository import AlbumRepository
 from lib.album import Album
@@ -106,6 +106,43 @@ def get_artists():
     artist_repo = ArtistRepository(connection)
     artists = artist_repo.all()
     return render_template('artists.html', artists=artists)
+
+@app.route('/albums/new', methods=['GET'])
+def get_albums_new():
+    return render_template('albums_form.html')
+
+@app.route('/albums/new', methods=['POST'])
+def create_new_album():
+    connection = get_flask_database_connection(app)
+    album_repo = AlbumRepository(connection)
+    new_album = Album(None, request.form['title'], 
+                      request.form['release_year'],
+                      request.form['artist_id'])
+    if not new_album.is_valid():
+        return render_template('albums_form.html', 
+                               errors=new_album.generate_errors()), 400
+    else:
+        album_repo.create(new_album)
+
+        album_id = album_repo.all()[-1].id
+        return redirect(f"/album/{album_id}")
+
+@app.route('/artists/new', methods=['GET'])
+def get_artists_new():
+    return render_template('artists_form.html')
+
+@app.route('/artists/new', methods=['POST'])
+def create_new_artist():
+    connection = get_flask_database_connection(app)
+    artist_repo = ArtistRepository(connection)
+    new_artist = Artist(None, request.form['name'], request.form['genre'])
+    if not new_artist.is_valid():
+        return render_template('artists_form.html', 
+                               errors=new_artist.generate_errors()), 400
+    
+    artist_repo.create(new_artist)
+    id = artist_repo.all()[-1].id
+    return redirect(f'/artists/{id}')
 
 # These lines start the server if you run this file directly
 # They also start the server configured to use the test database
